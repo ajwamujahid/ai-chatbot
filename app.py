@@ -2,7 +2,7 @@
 
 from flask import Flask, request, jsonify, render_template_string
 from dotenv import load_dotenv
-from groq import Groq
+from groq import Groq # type: ignore
 from collections import Counter
 import pandas as pd
 import numpy as np
