@@ -1,7 +1,4 @@
-"""
-AI Chatbot - Flask Application
-Clean, readable code with chat history + analytics
-"""
+
 
 from flask import Flask, request, jsonify, render_template_string
 from dotenv import load_dotenv
