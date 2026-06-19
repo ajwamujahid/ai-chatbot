@@ -1,4 +1,9 @@
 flask
-google-generativeai
+groq
+matplotlib
+numpy
+openai-agents
+pandas
+pypdf
 python-dotenv
 gunicorn

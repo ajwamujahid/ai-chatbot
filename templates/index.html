@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=17">
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="avatar">AI</div>
+            <div>
+                <h1>Agent SDK</h1>
+                <div class="status">
+                    <div class="status-dot"></div>
+                    Online
+                </div>
+            </div>
+        </div>
+
+        <button class="primary-action" onclick="newSession()">New Chat</button>
+
+        <div class="search-row">
+            <input id="search-input" class="search-input" type="search"
+                placeholder="Search chats..."
+                oninput="searchChats(this.value)">
+            <div id="search-results" class="search-results" hidden></div>
+        </div>
+
+        <div class="sidebar-section">
+            <span class="sidebar-label">Session</span>
+            <select id="session-select" class="session-select" onchange="selectSession(this.value)" aria-label="Chat session">
+                {% for session in sessions %}
+                <option value="{{ session.id }}" {% if session.id == active_session_id %}selected{% endif %}>
+                    {% if session.pinned %}Pinned · {% endif %}{{ session.title }}{% if session.message_count %} · {{ session.message_count }} msgs{% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="sidebar-actions">
+            <button id="pin-session-btn" class="icon-btn" onclick="togglePinSession()" title="Pin session" aria-label="Pin session"></button>
+            <button class="icon-btn" onclick="renameSession()" title="Rename session" aria-label="Rename session">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            </button>
+            <button class="icon-btn danger-btn" onclick="deleteSession()" title="Delete session" aria-label="Delete session">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5"/><path d="M14 11v5"/></svg>
+            </button>
+            <button class="icon-btn" onclick="clearChat()" title="Clear chat" aria-label="Clear chat">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h13a4 4 0 0 1 0 8H8"/><path d="M8 10l-4 4 4 4"/></svg>
+            </button>
+        </div>
+
+        <div class="sidebar-links">
+            <a class="icon-btn" href="/analytics" title="Analytics" aria-label="Analytics">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M13 16V8"/><path d="M18 16v-3"/></svg>
+            </a>
+            <a class="icon-btn" href="/export" title="Export chat" aria-label="Export chat">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            </a>
+        </div>
+
+        <div class="sidebar-footer">
+            <button id="theme-btn" class="icon-btn" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme"></button>
+            <div class="footer-text">{{ footer_label }}</div>
+        </div>
+    </aside>
+
+    <main class="chat-container">
+        <header class="chat-header">
+            <div>
+                <h2>OpenAI Agent SDK Assistant</h2>
+                <div class="status">
+                    <div class="status-dot"></div>
+                    {{ provider_label }}
+                </div>
+            </div>
+        </header>
+
+        <div id="chat-box">
+            <div class="message bot">
+                <div class="msg-avatar" aria-label="Assistant">✦</div>
+                <div class="msg-content">
+                    <div class="msg-bubble">Assalam o Alaikum! Main OpenAI Agents SDK par bana assistant hun. Aap coding, study, ya planning ke liye kuch bhi pooch sakte hain.</div>
+                    <div class="msg-time">Just now</div>
+                </div>
+            </div>
+
+            <div class="message bot" id="typing-wrapper" style="display:none">
+                <div class="msg-avatar" aria-label="Assistant">✦</div>
+                <div class="typing-indicator show">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="agent-row">
+                <span class="agent-label">Agent</span>
+                <button class="agent-chip active" data-agent="general" onclick="setAgent('general')">General</button>
+                <button class="agent-chip" data-agent="coding" onclick="setAgent('coding')">Coding</button>
+                <button class="agent-chip" data-agent="study" onclick="setAgent('study')">Study</button>
+                <button class="agent-chip" data-agent="business" onclick="setAgent('business')">Business</button>
+            </div>
+            <div class="prompt-row">
+                <button class="prompt-chip" onclick="usePrompt('Mujhe AI agents simple words mein samjhao')">Explain agents</button>
+                <button class="prompt-chip" onclick="usePrompt('Is project ke liye 3 new features suggest karo')">Suggest features</button>
+                <button class="prompt-chip" onclick="usePrompt('Mere chat stats batao')">Chat stats</button>
+            </div>
+            <div class="file-row">
+                <input class="file-input" id="file-input" type="file"
+                    accept=".txt,.md,.csv,.json,.py,.js,.html,.css,.pdf"
+                    onchange="uploadFile(this.files[0])">
+                <button class="file-btn" onclick="document.getElementById('file-input').click()">Attach file</button>
+                <button class="file-btn" onclick="clearFile()">Remove file</button>
+                <span class="file-status" id="file-status">{{ file_label }}</span>
+            </div>
+            <div class="composer">
+                <textarea id="user-input" placeholder="Message Agent SDK Assistant..." rows="1"
+                    onkeydown="handleKey(event)"
+                    oninput="autoResize(this)"></textarea>
+                <button id="send-btn" onclick="sendMessage()" aria-label="Send message">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#071018" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    window.initialMessages = {{ initial_messages|tojson }};
+    window.initialSessions = {{ sessions|tojson }};
+    window.activeSessionId = {{ active_session_id|tojson }};
+</script>
+<script src="{{ url_for('static', filename='chat.js') }}?v=21"></script>
+</body>
+</html>
